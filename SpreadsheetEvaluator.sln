@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31919.166
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpreadsheetEvaluator", "SpreadsheetEvaluator\SpreadsheetEvaluator.csproj", "{64132F8C-9AF2-403D-889B-6DC81453FE64}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpreadsheetEvaluator.Tests", "SpreadsheetEvaluator.Tests\SpreadsheetEvaluator.Tests.csproj", "{230A5EFA-AB2B-4F73-83A4-EA41C73F29ED}"
+	ProjectSection(ProjectDependencies) = postProject
+		{64132F8C-9AF2-403D-889B-6DC81453FE64} = {64132F8C-9AF2-403D-889B-6DC81453FE64}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{64132F8C-9AF2-403D-889B-6DC81453FE64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64132F8C-9AF2-403D-889B-6DC81453FE64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64132F8C-9AF2-403D-889B-6DC81453FE64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64132F8C-9AF2-403D-889B-6DC81453FE64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{230A5EFA-AB2B-4F73-83A4-EA41C73F29ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{230A5EFA-AB2B-4F73-83A4-EA41C73F29ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{230A5EFA-AB2B-4F73-83A4-EA41C73F29ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{230A5EFA-AB2B-4F73-83A4-EA41C73F29ED}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A6B54E3B-D49F-478E-864B-AC9EB240DFAF}
+	EndGlobalSection
+EndGlobal
