@@ -12,7 +12,6 @@ namespace SpreadsheetEvaluator.Api
         [JsonProperty("email")]
         public string Email { get; set; }
 
-
         [JsonProperty("results")]
         public List<SheetData> Results { get; set; } = new List<SheetData>();
     }

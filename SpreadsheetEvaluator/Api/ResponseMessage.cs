@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace SpreadsheetEvaluator.Api
 {
-    public class Token
+    public class ResponseMessage
     {
-        [JsonProperty("message")]
         public string Message { get; set; }  
     }
 }

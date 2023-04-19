@@ -33,9 +33,8 @@ namespace SpreadsheetEvaluator.Api
             {
                 var response = await _client
                     .Request($"{endPoint}")
-                    .WithHeader("Content-Type", "application/json")
                     .PostJsonAsync(submissionResult)
-                    .ReceiveJson<Token>();
+                    .ReceiveJson<ResponseMessage>();
 
                 return response.Message;
             }
