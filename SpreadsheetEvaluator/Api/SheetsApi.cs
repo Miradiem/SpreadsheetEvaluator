@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Flurl.Http;
-using Flurl;
-using Newtonsoft.Json;
+﻿using Flurl.Http;
 
 namespace SpreadsheetEvaluator.Api
 {
@@ -20,11 +13,21 @@ namespace SpreadsheetEvaluator.Api
 
         public async Task<Spreadsheet> GetSheets(string endPoint)
         {
-            var sheets = await _client
-                .Request($"/{endPoint}")
-                .GetJsonAsync<Spreadsheet>();
+            try
+            {
+                var sheets = await _client
+               .Request($"/{endPoint}")
+               .GetJsonAsync<Spreadsheet>();
 
-            return sheets;
+                return sheets;
+            }
+            catch (FlurlHttpException ex)
+            {
+                Console.WriteLine($"An error occurred while making the request: {ex.Message}");
+                Console.WriteLine($"Status code: {ex.Call.Response.StatusCode}");
+                Console.WriteLine($"Response content: {await ex.GetResponseStringAsync()}");
+                throw;
+            }
         }
 
         public async Task<string> PostSubmissions(string endPoint, SubmissionResult submissionResult)
@@ -40,7 +43,6 @@ namespace SpreadsheetEvaluator.Api
             }
             catch (FlurlHttpException ex)
             {
-                // It took me HOURS to come up with this solution..
                 Console.WriteLine($"An error occurred while making the request: {ex.Message}");
                 Console.WriteLine($"Status code: {ex.Call.Response.StatusCode}");
                 Console.WriteLine($"Response content: {await ex.GetResponseStringAsync()}");

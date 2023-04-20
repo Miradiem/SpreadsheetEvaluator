@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
+﻿using System.Data;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace SpreadsheetEvaluator.App
 {
@@ -50,10 +45,6 @@ namespace SpreadsheetEvaluator.App
             {
                 matchedFormula = directReference.Match(formula);
 
-            }
-            if (!matchedFormula.Success)
-            {
-                throw new ArgumentException("Invalid input string.");
             }
 
             return matchedFormula;
@@ -146,10 +137,16 @@ namespace SpreadsheetEvaluator.App
                 Match cellReference = Regex.Match(value.ToString().Trim(), @"^([A-Z])(\d+)$");
                 if (cellReference.Success)
                 {
-                    int col = cellReference.Groups[1].Value[0] - 'A';
+                    int collumn = cellReference.Groups[1].Value[0] - 'A';
                     int row = int.Parse(cellReference.Groups[2].Value) - 1;
-                    var cellValue = sheetData[row][col];
 
+                    if (collumn >= sheetData[0].Length || row >= sheetData.Length)
+                    {
+                        evaluatedCells.Add($"#ERROR: {value} cell does not exist.");
+                        continue;
+                    }
+
+                    var cellValue = sheetData[row][collumn];
                     evaluatedCells.Add(cellValue);
                 }
                 if (cellReference.Success is false)
@@ -176,17 +173,12 @@ namespace SpreadsheetEvaluator.App
             return formula;
         }
 
-        private static List<object> ParseConcat(string formula)
-        {
-            var parsedStrings = Regex.Matches(formula, "\"(?:\\\\\"|[^\"])+\"|[^,\\s]+")
-                                        .Cast<Match>()
-                                        .Select(match => match.Value.Trim('"'))
-                                        .ToList().ConvertAll(stringValue => (object)stringValue);
-
-            return parsedStrings;
-        }
-
-        
+        private static List<object> ParseConcat(string formula) =>
+            Regex.Matches(formula, "\"(?:\\\\\"|[^\"])+\"|[^,\\s]+")
+            .Cast<Match>()
+            .Select(match => match.Value.Trim('"'))
+            .ToList()
+            .ConvertAll(stringValue => (object)stringValue);
 
         private static object Function(string functionName, List<object> evaluatedParameters)
         {
@@ -233,6 +225,10 @@ namespace SpreadsheetEvaluator.App
                 {
                     valuesToSum.Add(doubleValue);
                 }
+                if (parameter is string || parameter is bool)
+                {
+                    return "#ERROR: =SUM incompatible type.";
+                }
             }
 
             return valuesToSum.Sum();
@@ -252,6 +248,10 @@ namespace SpreadsheetEvaluator.App
                 {
                     valuesToMultiply.Add(doubleValue);
                 }
+                if (parameter is string || parameter is bool)
+                {
+                    return "#ERROR: =MULTIPLY incompatible type.";
+                }
             }
 
             double result = 1.0;
@@ -262,11 +262,165 @@ namespace SpreadsheetEvaluator.App
 
             return result;
         }
+
+        private static object Divide(List<object> parameters)
+        {
+            if (parameters.Count != 2)
+            {
+                return "#ERROR: =DIVIDE requires 2 parameters.";
+            }
+
+            double numerator = 0;
+            double denominator = 0;
+
+            if (parameters[0] is double divident
+                && parameters[1] is double divisor)
+            {
+                numerator = divident;
+                denominator = divisor;
+            }
+            if (parameters[0] is string dividentString && double.TryParse(dividentString, out divident)
+                && parameters[1] is string divisorString && double.TryParse(divisorString, out divisor))
+            {
+                numerator = divident;
+                denominator = divisor;
+            }
+
+            if (parameters[0] is string || parameters[0] is bool)
+            {
+                return "#ERROR: =DIVIDE incompatible numerator.";
+            }
+            if (parameters[1] is string || parameters[1] is bool)
+            {
+                return "#ERROR: =DIVIDE incompatible denominator.";
+            }
+            if (denominator == 0)
+            {
+                return "#ERROR: =DIVIDE cannot divide by zero.";
+            }
+
+            return numerator / denominator;
+        }
+
+        private static object Gt(List<object> parameters)
+        {
+            if (parameters.Count != 2)
+            {
+                return "#ERROR: =GT requires 2 parameters.";
+            }
+
+            double firstValue = 0;
+            double secondValue = 0;
+
+            if (parameters[0] is double
+                && parameters[1] is double)
+            {
+                firstValue = (double)parameters[0];
+                secondValue = (double)parameters[1];
+            }
+            if (parameters[0] is string firstString && double.TryParse(firstString, out double firstDouble)
+                && parameters[1] is string secondString && double.TryParse(secondString, out double secondDouble))
+            {
+                firstValue = firstDouble;
+                secondValue = secondDouble;
+            }
+
+            if (parameters[0] is string || parameters[0] is bool)
+            {
+                return "#ERROR: =GT incompatible type (first).";
+            }
+            if (parameters[1] is string || parameters[0] is bool)
+            {
+                return "#ERROR: =GT incompatible type (second).";
+            }
+
+            return firstValue > secondValue;
+        }
+
+        private static object Eq(List<object> parameters)
+        {
+            if (parameters.Count != 2)
+            {
+                return "#ERROR: =EQ function requires 2 parameters";
+            }
+
+            object left = parameters[0];
+            object right = parameters[1];
+
+            if ((left is string && right is double)
+                || (left is double && right is string)
+                || (left is bool && right is bool))
+            {
+                return "#ERROR: =EQ incompatible types.";
+            }
+
+            if (left is bool leftBool && right is bool rightBool)
+            {
+                return leftBool == rightBool;
+            }
+            if (left is string leftString && right is string rightString)
+            {
+                return leftString.Trim().Equals(rightString.Trim());
+            }
+            if (left is double leftDouble && right is double rightDouble)
+            {
+                return leftDouble == rightDouble;
+            }
+
+            return false;
+        }
+
+        private static object Not(List<object> parameters)
+        {
+            if (parameters.Count != 1 || (parameters[0] is not bool))
+            {
+                return "#ERROR: =NOT incompatible type.";
+            }
+
+            return !(bool)parameters[0];
+        }
+
+        private static object And(List<object> parameters)
+        {
+            var boolValues = new List<bool>();
+            foreach (var parameter in parameters)
+            {
+                if (parameter is bool boolValue)
+                {
+                    boolValues.Add(boolValue);
+                }
+                if (parameter is not bool)
+                {
+                    return "#ERROR: =AND incompatible type";
+                }
+            }
+
+            return boolValues.All(b => b);
+        }
+
+        private static object Or(List<object> parameters)
+        {
+            List<bool> valuesToOr = new List<bool>();
+            foreach (var parameter in parameters)
+            {
+                if (parameter is bool boolValue)
+                {
+                    valuesToOr.Add(boolValue);
+                }
+                if (parameter is not bool)
+                {
+                    return "#ERROR: =OR incompatible type";
+                }
+            }
+
+            return valuesToOr.Any(b => b);
+        }
+
         private static object If(List<object> parameters)
         {
             if (parameters.Count != 3)
             {
-                throw new ArgumentException("IF function requires three arguments.");
+                return "#ERROR: =IF requires 3 parameters.";
             }
 
             var condition = parameters[0];
@@ -284,172 +438,24 @@ namespace SpreadsheetEvaluator.App
                 return conditionValueAsDouble != 0 ? trueResult : falseResult;
             }
 
-            throw new ArgumentException("Invalid condition parameter.");
+            return "#ERROR: =IF incompatible type.";
         }
 
-        private static object Gt(List<object> parameters)
-        {
-            if (parameters.Count != 2)
-            {
-                throw new ArgumentException("GT function expects 2 parameters");
-            }
-
-            double x;
-            double y;
-
-            if (parameters[0] is double)
-            {
-                x = (double)parameters[0];
-            }
-            else if (parameters[0] is string stringValue && double.TryParse(stringValue, out double doubleValue))
-            {
-                x = doubleValue;
-            }
-            else
-            {
-                throw new ArgumentException("Invalid parameter.");
-            }
-
-            if (parameters[1] is double)
-            {
-                y = (double)parameters[1];
-            }
-            else if (parameters[1] is string stringValue && double.TryParse(stringValue, out double doubleValue))
-            {
-                y = doubleValue;
-            }
-            else
-            {
-                throw new ArgumentException("Invalid parameter.");
-            }
-
-            return x > y;
-        }
-
-        private static object Eq(List<object> parameters)
-        {
-            if (parameters.Count != 2)
-            {
-                throw new ArgumentException("Invalid number of parameters for EQ function. Expected 2.");
-            }
-
-            object left = parameters[0];
-            object right = parameters[1];
-
-            if (left is double leftDouble && right is double rightDouble)
-            {
-                return leftDouble == rightDouble;
-            }
-            if (left is string leftString && right is string rightString)
-            {
-                return leftString.Equals(rightString);
-            }
-
-            return false;
-        }
-
-        private static object Not(List<object> parameters)
-        {
-            if (parameters.Count != 1 || !(parameters[0] is bool))
-            {
-                throw new ArgumentException("Invalid parameter.");
-            }
-
-            return !(bool)parameters[0];
-        }
-
-        private static object And(List<object> parameters)
-        {
-            var boolValues = new List<bool>();
-            foreach (var parameter in parameters)
-            {
-                if (parameter is bool boolValue)
-                {
-                    boolValues.Add(boolValue);
-                }
-                else
-                {
-                    return "#ERROR: Incompatible types";
-                }
-            }
-            return boolValues.All(b => b);
-        }
-
-        private static object Or(List<object> parameters)
-        {
-            List<bool> valuesToOr = new List<bool>();
-            foreach (var parameter in parameters)
-            {
-                if (parameter is bool boolValue)
-                {
-                    valuesToOr.Add(boolValue);
-                }
-                else
-                {
-                    return "#ERROR: Incompatible types";
-                }
-            }
-
-            return valuesToOr.Any(b => b);
-        }
-
-        private static object Divide(List<object> parameters)
-        {
-            if (parameters.Count != 2)
-            {
-                throw new ArgumentException("Invalid number of parameters for DIVIDE function.");
-            }
-
-            double numerator, denominator;
-            if (parameters[0] is double num && parameters[1] is double denom)
-            {
-                numerator = num;
-                denominator = denom;
-            }
-            else if (parameters[0] is string numString && double.TryParse(numString, out num) &&
-                     parameters[1] is string denomString && double.TryParse(denomString, out denom))
-            {
-                numerator = num;
-                denominator = denom;
-            }
-            else
-            {
-                throw new ArgumentException("Invalid parameters for DIVIDE function.");
-            }
-
-            if (denominator == 0)
-            {
-                throw new DivideByZeroException("Cannot divide by zero.");
-            }
-
-            return numerator / denominator;
-        }
-
-        private static object Concat(List<object> parameters)
-        {
-
-            var result = "";
-            foreach (var str in parameters)
-            {
-                result += string.Join(" ", str);
-            }
-            return result;
-        }
-
-       
+        private static object Concat(List<object> parameters) =>
+            string.Concat(parameters.Select(parameter => string.Join(" ", parameter)));
 
         private static object CellReference(List<object> parameters)
         {
             if (parameters.Count != 1)
             {
-                throw new ArgumentException("GetCellReference function expects 1 parameter");
+                return "#ERROR: =CellReference requires 1 parameter";
             }
 
             var cellReference = parameters[0];
 
             if (cellReference is null)
             {
-                throw new ArgumentException("Invalid parameter.");
+                return "#ERROR: =CellReference is empty.";
             }
 
             return cellReference;

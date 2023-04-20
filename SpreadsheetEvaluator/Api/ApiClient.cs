@@ -1,5 +1,4 @@
-﻿using Flurl;
-using Flurl.Http;
+﻿using Flurl.Http;
 
 namespace SpreadsheetEvaluator.Api
 {
