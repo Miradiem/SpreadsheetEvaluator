@@ -1,186 +1,28 @@
-﻿using System.Data;
+﻿using SpreadsheetEvaluator.Api;
+using System.Data;
 using System.Text.RegularExpressions;
 
 namespace SpreadsheetEvaluator.App
 {
-    public class TreeNodes
+    public static class Functions
     {
-        public static object EvaluateFormula(object[][] sheetData, string formula)
+        public static List<SheetData> CloneSheetData(Spreadsheet spreadSheet)
         {
-            var formulaReference = new Regex(@"([A-Z]+\w*)\((.*)\)");
-            var directReference = new Regex(@"[A-Z]\d+$");
-            var matchedFormula = MatchFormula(formula, formulaReference, directReference);
-
-            var parsedFormula = GetParsedFormula(sheetData, matchedFormula);
-            var formulaName = parsedFormula.formulaName;
-            var formulaParameters = parsedFormula.formulaParameters;
-
-            var evaluatedParameters = new List<object>();
-            foreach (var parameter in formulaParameters)
+            var result = new List<SheetData>();
+            foreach (var sheet in spreadSheet.Sheets)
             {
-                if (parameter is string parameterString
-                    && (formulaReference.IsMatch(parameterString)
-                        || directReference.IsMatch(parameterString)))
+                var clonedSheetData = new SheetData
                 {
-                    evaluatedParameters.Add(EvaluateFormula(sheetData, parameterString));
-                }
-                else
-                {
-                    evaluatedParameters.Add(parameter);
-                }
+                    Id = sheet.Id,
+                    Data = sheet.Data.Select(data => data.ToArray()).ToArray()
+                };
+                result.Add(clonedSheetData);
             }
 
-            return Function(formulaName, evaluatedParameters); 
+            return result;
         }
 
-        private static Match MatchFormula(string formula, Regex formulaReference, Regex directReference)
-        {
-            var matchedFormula = Match.Empty;
-
-            if (formulaReference.Match(formula).Success)
-            {
-                matchedFormula = formulaReference.Match(formula);
-            }
-            if (directReference.Match(formula).Success)
-            {
-                matchedFormula = directReference.Match(formula);
-
-            }
-
-            return matchedFormula;
-        }
-
-        private static (string formulaName, List<object> formulaParameters) GetParsedFormula(object[][] sheetData, Match matchedFormula)
-        {
-            var formulaName = "";
-            var formulaParameters = new List<object>();
-
-            if (matchedFormula.Groups.Count == 1)
-            {
-                formulaName = matchedFormula.Groups[0].Value;
-                formulaParameters = ParseFormulaParameters(sheetData, formulaName);
-            }
-            if (matchedFormula.Groups.Count > 2)
-            {
-                var formulaValue = matchedFormula.Groups[2].Value;
-                formulaName = matchedFormula.Groups[1].Value;
-                formulaParameters = ParseFormulaParameters(sheetData, formulaValue);
-            }
-            if (matchedFormula.Groups.Count > 2
-                && matchedFormula.Groups[1].Value == "CONCAT")
-            {
-                var formulaValue = matchedFormula.Groups[2].Value;
-                var evaluatedConcat = EvaluateConcat(formulaValue);
-                formulaName = matchedFormula.Groups[1].Value;
-                formulaParameters = ParseConcat(evaluatedConcat);
-            }
-
-            return (formulaName, formulaParameters);
-        }
-        private static List<object> ParseFormulaParameters(object[][] sheetData, string formula)
-        {
-            var parsedParameters = new List<object>();
-            var nestedFormulas = new Regex(@"^[A-Z]+\(([^\(\)]*|(\((?<DEPTH>)|(\)(?<-DEPTH>)))*(?(DEPTH)(?!))\))$");
-
-            var parsedFormula = ParseFormula(formula);
-            var evaluatedFormula = EvaluateCellReferences(sheetData, parsedFormula);
-            foreach (var parameter in evaluatedFormula)
-            {
-                if (double.TryParse(parameter.ToString(), out var doubleValue))
-                {
-                    parsedParameters.Add(doubleValue);
-                }
-                else if (nestedFormulas.IsMatch(parameter.ToString()))
-                {
-                    parsedParameters.Add(EvaluateFormula(sheetData, parameter.ToString()));
-                }
-                else
-                {
-                    parsedParameters.Add(parameter);
-                }
-            }
-
-            return parsedParameters;
-        }
-        private static List<object> ParseFormula(string formula)
-        {
-            var parameters = new List<object>();
-
-            var startIndex = 0;
-            var parenthesisCount = 0;
-            for (var i = 0; i < formula.Length; i++)
-            {
-                var character = formula[i];
-                if (character == ',' && parenthesisCount == 0)
-                {
-                    parameters.Add(formula.Substring(startIndex, i - startIndex));
-                    startIndex = i + 1;
-                }
-                else if (character == '(')
-                {
-                    parenthesisCount++;
-                }
-                else if (character == ')')
-                {
-                    parenthesisCount--;
-                }
-            }
-            parameters.Add(formula.Substring(startIndex));
-
-            return parameters; 
-        }
-        private static List<object> EvaluateCellReferences(object[][] sheetData, List<object> formula)
-        {
-            var evaluatedCells = new List<object>();
-            foreach (var value in formula)
-            {
-                Match cellReference = Regex.Match(value.ToString().Trim(), @"^([A-Z])(\d+)$");
-                if (cellReference.Success)
-                {
-                    int collumn = cellReference.Groups[1].Value[0] - 'A';
-                    int row = int.Parse(cellReference.Groups[2].Value) - 1;
-
-                    if (collumn >= sheetData[0].Length || row >= sheetData.Length)
-                    {
-                        evaluatedCells.Add($"#ERROR: {value} cell does not exist.");
-                        continue;
-                    }
-
-                    var cellValue = sheetData[row][collumn];
-                    evaluatedCells.Add(cellValue);
-                }
-                if (cellReference.Success is false)
-                {
-                    evaluatedCells.Add(value);
-                }
-            }
-
-            return evaluatedCells;
-        }
-        private static string EvaluateConcat(string formula)
-        {
-            var concatReference = new Regex(@"CONCAT\((.*?)\)");
-            var matchedFormula = concatReference.Match(formula);
-
-            while (matchedFormula.Success)
-            {
-                string concatValue = matchedFormula.Groups[1].Value;
-                string evaluatedConcat = EvaluateConcat(concatValue);
-                formula = formula.Replace(matchedFormula.Value, evaluatedConcat);
-                matchedFormula = concatReference.Match(formula);
-            }
-
-            return formula;
-        }
-
-        private static List<object> ParseConcat(string formula) =>
-            Regex.Matches(formula, "\"(?:\\\\\"|[^\"])+\"|[^,\\s]+")
-            .Cast<Match>()
-            .Select(match => match.Value.Trim('"'))
-            .ToList()
-            .ConvertAll(stringValue => (object)stringValue);
-
-        private static object Function(string functionName, List<object> evaluatedParameters)
+        public static object Function(string functionName, List<object> evaluatedParameters)
         {
             switch (functionName)
             {
@@ -207,13 +49,13 @@ namespace SpreadsheetEvaluator.App
                 case string nameValue when Regex.IsMatch(nameValue, @"^[A-Z]\d+$"):
                     return CellReference(evaluatedParameters);
                 default:
-                    return "##Error, invalid function name.";
+                    return "##Error: invalid function name.";
             }
         }
 
         private static object Sum(List<object> parameters)
         {
-            List<double> valuesToSum = new List<double>();
+            var valuesToSum = new List<double>();
             foreach (var parameter in parameters)
             {
                 if (parameter is double doubleValue)
@@ -236,7 +78,7 @@ namespace SpreadsheetEvaluator.App
 
         private static object Multiply(List<object> parameters)
         {
-            List<double> valuesToMultiply = new List<double>();
+            var valuesToMultiply = new List<double>();
             foreach (var parameter in parameters)
             {
                 if (parameter is double doubleValue)
@@ -254,7 +96,7 @@ namespace SpreadsheetEvaluator.App
                 }
             }
 
-            double result = 1.0;
+            double result = 1;
             foreach (var value in valuesToMultiply)
             {
                 result *= value;
@@ -344,8 +186,8 @@ namespace SpreadsheetEvaluator.App
                 return "#ERROR: =EQ function requires 2 parameters";
             }
 
-            object left = parameters[0];
-            object right = parameters[1];
+            var left = parameters[0];
+            var right = parameters[1];
 
             if ((left is string && right is double)
                 || (left is double && right is string)
@@ -400,7 +242,7 @@ namespace SpreadsheetEvaluator.App
 
         private static object Or(List<object> parameters)
         {
-            List<bool> valuesToOr = new List<bool>();
+            var valuesToOr = new List<bool>();
             foreach (var parameter in parameters)
             {
                 if (parameter is bool boolValue)

@@ -1,27 +1,8 @@
-﻿using SpreadsheetEvaluator.Api;
-using SpreadsheetEvaluator.App;
+﻿using SpreadsheetEvaluator.App;
 
+var baseUrl = "https://www.wix.com/_serverless/hiring-task-spreadsheet-evaluator";
 var email = "kipras.st@gmail.com";
-var baseApiUrl = "https://www.wix.com/_serverless/hiring-task-spreadsheet-evaluator";
-var sheetsApi = new SheetsApi(
-    new ApiClient(baseApiUrl).Create());
-var spreadSheet = await sheetsApi.GetSheets("sheets");
-var submissionUrl = spreadSheet.SubmissionUrl.Replace(baseApiUrl, "");
 
-var sheetList = spreadSheet.Sheets;
-sheetList.ForEach(sheet => new Evaluation().EvaluateSpreadsheet(sheet));
+var submission = await new Submission(baseUrl, email).SubmitEvaluationResult();
 
-var submissionResult = new SubmissionResult()
-{
-    Email = email,
-    Results = sheetList
-};
-
-var postResult = await sheetsApi.PostSubmissions(submissionUrl, submissionResult);
-
-Console.WriteLine(postResult);
-
-
-
-
-
+Console.WriteLine(submission);
