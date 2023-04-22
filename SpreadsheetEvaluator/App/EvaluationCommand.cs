@@ -2,12 +2,12 @@
 
 namespace SpreadsheetEvaluator.App
 {
-    public class Submission
+    public class EvaluationCommand
     {
         private readonly string _baseUrl;
         private readonly string _email;
         
-        public Submission(string baseUrl, string email)
+        public EvaluationCommand(string baseUrl, string email)
         {
             _baseUrl = baseUrl;
             _email = email;
@@ -20,9 +20,8 @@ namespace SpreadsheetEvaluator.App
                 .Create());
 
             var spreadSheet = await api.GetSheets("sheets");
-            var submissionUrl = spreadSheet.SubmissionUrl.Replace(_baseUrl, "");
 
-            var sheetData = Functions.CloneSheetData(spreadSheet);
+            var sheetData = SpreadSheetFunctions.CloneSheetData(spreadSheet.Sheets);
             sheetData.ForEach(sheet => new Evaluation().EvaluateSpreadsheet(sheet));
 
             var submissionResult = new SubmissionResult()
@@ -31,7 +30,7 @@ namespace SpreadsheetEvaluator.App
                 Results = sheetData
             };
            
-            return await api.PostSubmissions(submissionUrl, submissionResult);
+            return await api.PostSubmissions(spreadSheet.SubmissionUrl.Replace(_baseUrl, ""), submissionResult);
         }
     }
 }

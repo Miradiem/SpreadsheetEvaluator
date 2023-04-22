@@ -4,12 +4,12 @@ using System.Text.RegularExpressions;
 
 namespace SpreadsheetEvaluator.App
 {
-    public static class Functions
+    public static class SpreadSheetFunctions
     {
-        public static List<SheetData> CloneSheetData(Spreadsheet spreadSheet)
+        public static List<SheetData> CloneSheetData(List<SheetData> sheetData)
         {
             var result = new List<SheetData>();
-            foreach (var sheet in spreadSheet.Sheets)
+            foreach (var sheet in sheetData)
             {
                 var clonedSheetData = new SheetData
                 {
@@ -22,16 +22,18 @@ namespace SpreadsheetEvaluator.App
             return result;
         }
 
-        public static object Function(string functionName, List<object> evaluatedParameters)
+        public static object EvaluateFunction(string functionName, List<object> evaluatedParameters)
         {
             switch (functionName)
             {
+                case string cellReference when Regex.IsMatch(cellReference, @"^[A-Z]\d+$"):
+                    return CellReference(evaluatedParameters);
                 case "SUM":
                     return Sum(evaluatedParameters);
                 case "MULTIPLY":
                     return Multiply(evaluatedParameters);
-                case "IF":
-                    return If(evaluatedParameters);
+                case "DIVIDE":
+                    return Divide(evaluatedParameters);
                 case "GT":
                     return Gt(evaluatedParameters);
                 case "EQ":
@@ -42,15 +44,25 @@ namespace SpreadsheetEvaluator.App
                     return And(evaluatedParameters);
                 case "OR":
                     return Or(evaluatedParameters);
-                case "DIVIDE":
-                    return Divide(evaluatedParameters);
+                case "IF":
+                    return If(evaluatedParameters);
                 case "CONCAT":
                     return Concat(evaluatedParameters);
-                case string nameValue when Regex.IsMatch(nameValue, @"^[A-Z]\d+$"):
-                    return CellReference(evaluatedParameters);
                 default:
                     return "##Error: invalid function name.";
             }
+        }
+
+        private static object CellReference(List<object> parameters)
+        {
+            if (parameters.Count != 1)
+            {
+                return "#ERROR: =CellReference requires 1 parameter";
+            }
+
+            var cellReference = parameters[0];
+
+            return cellReference;
         }
 
         private static object Sum(List<object> parameters)
@@ -285,22 +297,5 @@ namespace SpreadsheetEvaluator.App
 
         private static object Concat(List<object> parameters) =>
             string.Concat(parameters.Select(parameter => string.Join(" ", parameter)));
-
-        private static object CellReference(List<object> parameters)
-        {
-            if (parameters.Count != 1)
-            {
-                return "#ERROR: =CellReference requires 1 parameter";
-            }
-
-            var cellReference = parameters[0];
-
-            if (cellReference is null)
-            {
-                return "#ERROR: =CellReference is empty.";
-            }
-
-            return cellReference;
-        }
     }
 }

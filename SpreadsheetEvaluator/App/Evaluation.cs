@@ -52,7 +52,7 @@ namespace SpreadsheetEvaluator.App
                 }
             }
 
-            return Functions.Function(formulaName, evaluatedParameters);
+            return SpreadSheetFunctions.EvaluateFunction(formulaName, evaluatedParameters);
         }
 
         private Match MatchFormula(string formula, Regex formulaReference, Regex directReference)
@@ -99,6 +99,7 @@ namespace SpreadsheetEvaluator.App
 
             return (nameResult, parametersResult);
         }
+
         private List<object> ParseFormulaParameters(object[][] sheetData, string formula)
         {
             var result = new List<object>();
@@ -124,6 +125,7 @@ namespace SpreadsheetEvaluator.App
 
             return result;
         }
+
         private List<object> ParseFormula(string formula)
         {
             var result = new List<object>();
@@ -151,6 +153,7 @@ namespace SpreadsheetEvaluator.App
 
             return result;
         }
+
         private List<object> EvaluateCellReferences(object[][] sheetData, List<object> formula)
         {
             var result = new List<object>();
@@ -179,6 +182,7 @@ namespace SpreadsheetEvaluator.App
 
             return result;
         }
+
         private string EvaluateConcat(string formula)
         {
             var concatReference = new Regex(@"CONCAT\((.*?)\)");

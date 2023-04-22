@@ -8,6 +8,6 @@ namespace SpreadsheetEvaluator.Api
         public string Id { get; set; }
 
         [JsonProperty("data")]
-        public object[][] Data { get; set; }
+        public object[][] Data { get; set; } = new object[0][];
     }
 }
