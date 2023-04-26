@@ -10,8 +10,9 @@
 * Write unit tests for the project  
 
 #### Used packages:  
-1. FluentAssertions  
-2. Xunit   
+1. Flurl (FluentUrl)
+2. FluentAssertions  
+3. Xunit   
 
 #### To run project:
 1. Navigate to solution folder (cd ..\SpreadsheetEvaluator)
