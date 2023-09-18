@@ -1,13 +1,7 @@
 # SpreadsheetEvaluator
 
-### HomeTask 2023 April 
-  
-#### Goal of the assignment:  
-* Implement an application that is able to evaluate data structure representing a spreadsheet.  
-
-#### Other requirements:  
-* Keep the code clean and use the best coding practices  
-* Write unit tests for the project  
+#### Goal:  
+* Implement an application that is able to evaluate data structure representing a spreadsheet.   
 
 #### Used packages:  
 1. Flurl (FluentUrl)
